@@ -55,6 +55,10 @@ jobs:
           tag=${{ github.ref }}
           version=${tag#refs/tags/v}
 
+          # Move to branch containing tag
+          branch=$(git branch --contains HEAD | grep --color=never -v 'HEAD detached')
+          git checkout $branch
+
           sed -i "s/^version = .*/version = \"$version\"/" Cargo.toml
 
           # Edit the first line after the one mentioning crust-gather
@@ -69,6 +73,7 @@ jobs:
 
             git add Cargo.{toml,lock}
             git commit -m "Update Cargo files to match tag v$version"
+
             git push
           fi
 
