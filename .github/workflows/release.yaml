@@ -42,9 +42,35 @@ jobs:
         run: |
           GOOS=linux GOARCH=amd64 make test
 
+  edit-cargo-files:
+    name: Edit Cargo files to match tag
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Update Cargo.toml to match tag
+        if: startsWith( github.ref, 'refs/tags/v' )
+        run: |
+          tag=${{ github.ref }}
+          version=${tag#refs/tags/v}
+
+          sed -i "s/^version = .*/version = \"$version\"/" Cargo.toml
+
+          # Edit the first line after the one mentioning crust-gather
+          sed -i "/^name = \"crust-gather\"/{n;s/version =.*/version = \"$version\"/;}" Cargo.lock
+
+          modified=$(git status -s | grep 'M Cargo.*')
+
+          # if Cargo files were already up-to-date, no commit is needed
+          if [ -n "$modified" ]; then
+            git config user.name 'crust-gather Release action'
+
+            git add Cargo.{toml,lock}
+            git commit -m "Update Cargo files to match tag v$version"
+            git push
+          fi
+
   build:
     name: Build - ${{ matrix.platform.name }}
-    needs: test
+    needs: [test, edit-cargo-files]
     # By default, runs on Ubuntu, otherwise, override with the desired os
     runs-on: ${{ matrix.platform.os || 'ubuntu-22.04' }}
     strategy:
@@ -85,26 +111,6 @@ jobs:
           override: true
           target: ${{ matrix.platform.target }}
           components: rustfmt, clippy
-
-      - name: Update Cargo.toml to match tag
-        if: startsWith( github.ref, 'refs/tags/v' )
-        run: |
-          tag=${{ github.ref }}
-          version=${tag#refs/tags/v}
-
-          sed -i "s/^version = .*/version = \"$version\"/" Cargo.toml
-
-          modified=$(gist -s | grep 'M Cargo.toml')
-
-          # if Cargo.yaml was already up-to-date, no commit is needed
-          if [ -n "$modified" ]; then
-            git config user.name 'crust-gather Release action'
-
-            git add Cargo.toml
-            git commit -m "Update Cargo.toml to match tag v$version"
-            git push
-          fi
-
 
       - name: Build ${{ matrix.platform.name }} binary
         if: ${{ !contains(matrix.platform.target, 'apple') }}
