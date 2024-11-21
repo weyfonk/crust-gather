@@ -65,6 +65,7 @@ jobs:
           # if Cargo files were already up-to-date, no commit is needed
           if [ -n "$modified" ]; then
             git config user.name 'crust-gather Release action'
+            git config user.email 'auto@crust-gather.cloud'
 
             git add Cargo.{toml,lock}
             git commit -m "Update Cargo files to match tag v$version"
