@@ -76,6 +76,10 @@ jobs:
 
             git push
           fi
+          # FIXME issue: checking out the tag (in the build job below) would not yield a state containing Cargo file
+          # updates anymore ^
+          # Force-pushing the tag for it to point to the newly pushed commit may not be a great idea either (it would
+          # trigger another workflow run)
 
   build:
     name: Build - ${{ matrix.platform.name }}
